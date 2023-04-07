@@ -1,10 +1,11 @@
 """
 Test inference with / without CoT
 """
-
+import sys
 import unittest
-
+sys.path.append('..')
 from transformers import AutoTokenizer
+from utils import ChatPromptProcessor, Dialogue
 
 
 
