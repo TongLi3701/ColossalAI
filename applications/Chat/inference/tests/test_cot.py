@@ -4,13 +4,15 @@ Test inference with / without CoT
 
 import unittest
 
+from transformers import AutoTokenizer
+
 
 
 class TestInference(unittest.TestCase):
-    def test_inference_without_cot(self):
+    def testInferenceWithoutCot(self):
         pass
 
-    def test_inference_with_cot(self):
+    def testInferenceWithCot(self):
         pass
 
 
