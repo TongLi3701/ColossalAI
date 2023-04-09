@@ -17,11 +17,9 @@ USE_8BIT = False
 samples = [
     ([
         Dialogue(
-            instruction='Who is the best player in the history of NBA?',
-            response=
-            'The best player in the history of the NBA is widely considered to be Michael Jordan. He is one of the most successful players in the league, having won 6 NBA championships with the Chicago Bulls and 5 more with the Washington Wizards. He is a 5-time MVP, 1'
+            instruction='Roger has 5 tennis balls. He buys 2 more cans of tennis balls. Each can has 3 tennis balls. How many tennis balls does he have now?',
+            response=""
         ),
-        Dialogue(instruction='continue this talk', response=''),
     ], 128
     ),
 ]
@@ -39,7 +37,7 @@ class TestInference(unittest.TestCase):
         for history, max_new_tokens in samples:
             prompt = processor.preprocess_prompt(history, max_new_tokens)
             inputs = {k: v.cuda() for k, v in tokenizer(prompt, return_tensors="pt").items()}
-            generate_ids = model.generate(**inputs, max_length = 256)
+            generate_ids = model.generate(**inputs, max_length = 128)
             output = tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
             print(output)
 
