@@ -19,7 +19,7 @@ from .utils import is_rank_0, to_device
 
 class SFTTrainer(Trainer):
     """
-        Trainer to use while training reward model.
+        Trainer for supervised fine-tuning.
 
     Args:
         model (torch.nn.Module): the model to train
@@ -66,14 +66,10 @@ class SFTTrainer(Trainer):
             wandb.init(project="Coati", name=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
             wandb.watch(self.model)
         total_loss = 0
-        # epoch_bar = tqdm(range(self.epochs), desc='Epochs', disable=not is_rank_0())
         step_bar = tqdm(range(len(self.train_dataloader) // self.accumulation_steps * self.max_epochs),
                         desc=f'steps',
                         disable=not is_rank_0())
         for epoch in range(self.max_epochs):
-
-            # process_bar = tqdm(range(len(self.train_dataloader)), desc=f'Train process for{epoch}', disable=not is_rank_0())
-            # train
             self.model.train()
             for batch_id, batch in enumerate(self.train_dataloader):
 
@@ -81,9 +77,6 @@ class SFTTrainer(Trainer):
                 outputs = self.model(batch["input_ids"], attention_mask=batch["attention_mask"], labels=batch["labels"])
 
                 loss = outputs.loss
-
-                if loss >= 2.5 and is_rank_0():
-                    logger.warning(f"batch_id:{batch_id}, abnormal loss: {loss}")
 
                 loss = loss / self.accumulation_steps
 
@@ -106,13 +99,7 @@ class SFTTrainer(Trainer):
                     total_loss = 0
                     step_bar.update()
 
-                # if batch_id % log_interval == 0:
-                # logger.info(f'Train Epoch {epoch}/{self.epochs} Batch {batch_id} Rank {dist.get_rank()} loss {loss.item()}')
-                # wandb.log({"loss": loss.item()})
-
-                # process_bar.update()
-
-            # eval
+            # Evaluation
             if self.eval_dataloader is not None:
                 self.model.eval()
                 with torch.no_grad():
@@ -131,5 +118,3 @@ class SFTTrainer(Trainer):
                     loss_mean = loss_sum / num_seen
                     if dist.get_rank() == 0:
                         logger.info(f'Eval Epoch {epoch}/{self.max_epochs} loss {loss_mean}')
-
-            # epoch_bar.update()
