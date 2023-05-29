@@ -143,6 +143,4 @@ docs/.build
 *.pt
 
 # wandb log
-example/wandb/
-
-examples/awesome-chatgpt-prompts/
+examples/wandb/
