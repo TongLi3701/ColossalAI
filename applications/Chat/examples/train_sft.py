@@ -161,7 +161,7 @@ def train(args):
                          max_epochs=args.max_epochs,
                          accumulation_steps=args.accumulation_steps)
 
-    trainer.fit(logger=logger, use_wandb=args.use_wandb)
+    trainer.fit(logger=logger, use_wandb=args.use_wandb, project_name=args.project_name)
 
     # save model checkpoint after fitting on only rank0
     strategy.save_pretrained(model, path=args.save_path, only_rank0=True, tokenizer=tokenizer)
@@ -191,6 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=5e-6)
     parser.add_argument('--accumulation_steps', type=int, default=8)
     parser.add_argument('--use_wandb', default=False, action='store_true')
+    parser.add_argument('--project_name', type=str, default="Coati")
     parser.add_argument('--grad_checkpoint', default=False, action='store_true')
     args = parser.parse_args()
     train(args)

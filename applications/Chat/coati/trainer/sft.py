@@ -61,9 +61,9 @@ class SFTTrainer(Trainer):
                                        num_warmup_steps=math.ceil(max_steps * 0.03),
                                        num_training_steps=max_steps)
 
-    def fit(self, logger, use_wandb: bool = False):
+    def fit(self, logger, use_wandb: bool = False, project_name="Coati"):
         if use_wandb:
-            wandb.init(project="Coati", name=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+            wandb.init(project=project_name, name=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
             wandb.watch(self.model)
         total_loss = 0
         step_bar = tqdm(range(len(self.train_dataloader) // self.accumulation_steps * self.max_epochs),
