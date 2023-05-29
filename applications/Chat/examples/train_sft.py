@@ -164,7 +164,8 @@ def train(args):
     trainer.fit(logger=logger, use_wandb=args.use_wandb, project_name=args.project_name)
 
     # save model checkpoint after fitting on only rank0
-    strategy.save_pretrained(model, path=args.save_path, only_rank0=True, tokenizer=tokenizer)
+    save_path = os.path.join(args.save_path, args.project_name)
+    strategy.save_pretrained(model, path=save_path, only_rank0=True, tokenizer=tokenizer)
     # save optimizer checkpoint on all ranks
     if args.need_optim_ckpt:
         strategy.save_optimizer(trainer.optimizer,
@@ -187,7 +188,6 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--max_len', type=int, default=512)
     parser.add_argument('--lora_rank', type=int, default=0, help="low-rank adaptation matrices rank")
-    parser.add_argument('--log_interval', type=int, default=100, help="how many steps to log")
     parser.add_argument('--lr', type=float, default=5e-6)
     parser.add_argument('--accumulation_steps', type=int, default=8)
     parser.add_argument('--use_wandb', default=False, action='store_true')
