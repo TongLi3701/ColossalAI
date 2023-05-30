@@ -78,7 +78,8 @@ def train(args):
     else:
         raise ValueError(f'Unsupported model "{args.model}"')
     tokenizer.pad_token = tokenizer.eos_token
-    max_len = args.max_len
+    # Get max length from the tokenizer
+    max_len = tokenizer.model_max_length
     if args.model == 'llama':
         tokenizer = prepare_llama_tokenizer_and_embedding(tokenizer, model)
 
@@ -154,18 +155,22 @@ def train(args):
 
     (model, optim) = strategy.prepare((model, optim))
     trainer = SFTTrainer(model=model,
+                         tokenizer=tokenizer,
                          strategy=strategy,
                          optim=optim,
                          train_dataloader=train_dataloader,
                          eval_dataloader=eval_dataloader,
                          max_epochs=args.max_epochs,
-                         accumulation_steps=args.accumulation_steps)
+                         accumulation_steps=args.accumulation_steps,
+                         steps_to_save_model=args.steps_to_save_model)
 
-    trainer.fit(logger=logger, use_wandb=args.use_wandb, project_name=args.project_name)
+    trainer.fit(logger=logger, path=args.save_path, use_wandb=args.use_wandb, project_name=args.project_name)
 
     # save model checkpoint after fitting on only rank0
     save_path = os.path.join(args.save_path, args.project_name)
     strategy.save_pretrained(model, path=save_path, only_rank0=True, tokenizer=tokenizer)
+    logger.info(f"Model saved after {args.max_epochs} epoch(s) at {save_path}")
+
     # save optimizer checkpoint on all ranks
     if args.need_optim_ckpt:
         strategy.save_optimizer(trainer.optimizer,
@@ -190,6 +195,7 @@ if __name__ == '__main__':
     parser.add_argument('--lora_rank', type=int, default=0, help="low-rank adaptation matrices rank")
     parser.add_argument('--lr', type=float, default=5e-6)
     parser.add_argument('--accumulation_steps', type=int, default=8)
+    parser.add_argument('--steps_to_save_model', type=int, default=None, help="Steps to save model checkpoint")
     parser.add_argument('--use_wandb', default=False, action='store_true')
     parser.add_argument('--project_name', type=str, default="Coati")
     parser.add_argument('--grad_checkpoint', default=False, action='store_true')

@@ -1,4 +1,5 @@
 import math
+import os
 import time
 from typing import List, Optional
 
@@ -36,12 +37,14 @@ class SFTTrainer(Trainer):
     def __init__(
         self,
         model,
+        tokenizer,
         strategy: Strategy,
         optim: Optimizer,
         train_dataloader: DataLoader,
         eval_dataloader: DataLoader = None,
         max_epochs: int = 2,
         accumulation_steps: int = 8,
+        steps_to_save_model: int = 500,
         callbacks: List[Callback] = [],
     ) -> None:
         if accumulation_steps > 1 and isinstance(strategy, ColossalAIStrategy) and strategy.stage == 3:
@@ -50,9 +53,11 @@ class SFTTrainer(Trainer):
         self.train_dataloader = train_dataloader
         self.eval_dataloader = eval_dataloader
         self.model = model
+        self.tokenizer = tokenizer
         self.optimizer = optim
 
         self.accumulation_steps = accumulation_steps
+        self.steps_to_save_model = steps_to_save_model
         num_update_steps_per_epoch = len(train_dataloader) // self.accumulation_steps
         max_steps = math.ceil(self.max_epochs * num_update_steps_per_epoch)
 
@@ -61,14 +66,14 @@ class SFTTrainer(Trainer):
                                        num_warmup_steps=math.ceil(max_steps * 0.03),
                                        num_training_steps=max_steps)
 
-    def fit(self, logger, use_wandb: bool = False, project_name="Coati"):
+    def fit(self, logger, path: str, use_wandb: bool = False, project_name="Coati"):
         if use_wandb:
             wandb.init(project=project_name, name=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
             wandb.watch(self.model)
         total_loss = 0
-        step_bar = tqdm(range(len(self.train_dataloader) // self.accumulation_steps * self.max_epochs),
-                        desc=f'steps',
-                        disable=not is_rank_0())
+        total_steps = len(self.train_dataloader) // self.accumulation_steps * self.max_epochs
+        step_bar = tqdm(range(total_steps), desc=f'steps', disable=not is_rank_0())
+        step_counter = 0
         for epoch in range(self.max_epochs):
             self.model.train()
             for batch_id, batch in enumerate(self.train_dataloader):
@@ -98,6 +103,16 @@ class SFTTrainer(Trainer):
                         })
                     total_loss = 0
                     step_bar.update()
+                    step_counter += 1
+
+                    if is_rank_0(
+                    ) and self.steps_to_save_model is not None and step_counter != 0 and step_counter != total_steps and step_counter % self.steps_to_save_model == 0:
+                        save_path = os.path.join(path, project_name + f"-step{step_counter}")
+                        self.strategy.save_pretrained(self.model,
+                                                      path=save_path,
+                                                      only_rank0=True,
+                                                      tokenizer=self.tokenizer)
+                        logger.info(f"Model saved after {step_counter} step(s) at {save_path}")
 
             # Evaluation
             if self.eval_dataloader is not None:
