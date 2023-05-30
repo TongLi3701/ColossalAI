@@ -79,7 +79,10 @@ def train(args):
         raise ValueError(f'Unsupported model "{args.model}"')
     tokenizer.pad_token = tokenizer.eos_token
     # Get max length from the tokenizer
-    max_len = tokenizer.model_max_length
+    if args.max_len is None:
+        max_len = tokenizer.model_max_length
+    else:
+        max_len = args.max_len
     if args.model == 'llama':
         tokenizer = prepare_llama_tokenizer_and_embedding(tokenizer, model)
 
@@ -191,7 +194,7 @@ if __name__ == '__main__':
     parser.add_argument('--need_optim_ckpt', type=bool, default=False)
     parser.add_argument('--max_epochs', type=int, default=3)
     parser.add_argument('--batch_size', type=int, default=4)
-    parser.add_argument('--max_len', type=int, default=512)
+    parser.add_argument('--max_len', type=int, default=None)
     parser.add_argument('--lora_rank', type=int, default=0, help="low-rank adaptation matrices rank")
     parser.add_argument('--lr', type=float, default=5e-6)
     parser.add_argument('--accumulation_steps', type=int, default=8)
