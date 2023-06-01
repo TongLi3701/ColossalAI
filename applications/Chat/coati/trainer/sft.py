@@ -44,7 +44,8 @@ class SFTTrainer(Trainer):
         eval_dataloader: DataLoader = None,
         max_epochs: int = 2,
         accumulation_steps: int = 8,
-        steps_to_save_model: int = 500,
+        every_step_to_save_model: int = None,
+        every_epoch_to_save_model: int = None,
         callbacks: List[Callback] = [],
     ) -> None:
         if accumulation_steps > 1 and isinstance(strategy, ColossalAIStrategy) and strategy.stage == 3:
@@ -57,7 +58,8 @@ class SFTTrainer(Trainer):
         self.optimizer = optim
 
         self.accumulation_steps = accumulation_steps
-        self.steps_to_save_model = steps_to_save_model
+        self.every_step_to_save_model = every_step_to_save_model
+        self.every_epoch_to_save_model = every_epoch_to_save_model
         num_update_steps_per_epoch = len(train_dataloader) // self.accumulation_steps
         max_steps = math.ceil(self.max_epochs * num_update_steps_per_epoch)
 
@@ -106,13 +108,19 @@ class SFTTrainer(Trainer):
                     step_counter += 1
 
                     if is_rank_0(
-                    ) and self.steps_to_save_model is not None and step_counter != 0 and step_counter != total_steps and step_counter % self.steps_to_save_model == 0:
+                    ) and self.every_step_to_save_model is not None and step_counter != 0 and step_counter != total_steps and step_counter % self.every_step_to_save_model == 0:
                         save_path = os.path.join(path, project_name + f"-step{step_counter}")
                         self.strategy.save_pretrained(self.model,
                                                       path=save_path,
                                                       only_rank0=True,
                                                       tokenizer=self.tokenizer)
                         logger.info(f"Model saved after {step_counter} step(s) at {save_path}")
+
+            if is_rank_0() and self.every_epoch_to_save_model is not None and (
+                    epoch + 1) % self.every_epoch_to_save_model == 0 and (epoch + 1) != self.max_epochs:
+                save_path = os.path.join(path, project_name + f"-epoch{epoch + 1}")
+                self.strategy.save_pretrained(self.model, path=save_path, only_rank0=True, tokenizer=self.tokenizer)
+                logger.info(f"Model saved after {epoch + 1} epoch(s) at {save_path}")
 
             # Evaluation
             if self.eval_dataloader is not None:

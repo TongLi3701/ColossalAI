@@ -165,7 +165,8 @@ def train(args):
                          eval_dataloader=eval_dataloader,
                          max_epochs=args.max_epochs,
                          accumulation_steps=args.accumulation_steps,
-                         steps_to_save_model=args.steps_to_save_model)
+                         every_step_to_save_model=args.every_step_to_save_model,
+                         every_epoch_to_save_model=args.every_epoch_to_save_model)
 
     trainer.fit(logger=logger, path=args.save_path, use_wandb=args.use_wandb, project_name=args.project_name)
 
@@ -198,7 +199,14 @@ if __name__ == '__main__':
     parser.add_argument('--lora_rank', type=int, default=0, help="low-rank adaptation matrices rank")
     parser.add_argument('--lr', type=float, default=5e-6)
     parser.add_argument('--accumulation_steps', type=int, default=8)
-    parser.add_argument('--steps_to_save_model', type=int, default=None, help="Steps to save model checkpoint")
+    parser.add_argument('--every_step_to_save_model',
+                        type=int,
+                        default=None,
+                        help="Every step to save model checkpoint")
+    parser.add_argument('--every_epoch_to_save_model',
+                        type=int,
+                        default=None,
+                        help="Every epoch to save model checkpoint")
     parser.add_argument('--use_wandb', default=False, action='store_true')
     parser.add_argument('--project_name', type=str, default="Coati")
     parser.add_argument('--grad_checkpoint', default=False, action='store_true')
