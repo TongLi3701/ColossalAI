@@ -92,8 +92,8 @@ class SFTTrainer(Trainer):
                 # gradient accumulation
                 if (batch_id + 1) % self.accumulation_steps == 0:
                     self.strategy.optimizer_step(self.optimizer)
-                    self.optimizer.zero_grad()
                     self.scheduler.step()
+                    self.optimizer.zero_grad()
                     if is_rank_0() and use_wandb:
                         wandb.log({
                             "loss": total_loss / self.accumulation_steps,
