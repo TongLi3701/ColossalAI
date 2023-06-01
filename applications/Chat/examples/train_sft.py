@@ -8,6 +8,7 @@ from coati.dataset import DataCollatorForSupervisedDataset, SFTDataset, Supervis
 from coati.models import convert_to_lora_module
 from coati.trainer import SFTTrainer
 from coati.trainer.strategies import ColossalAIStrategy, DDPStrategy, NaiveStrategy
+from coati.trainer.utils import is_rank_0
 from coati.utils import prepare_llama_tokenizer_and_embedding
 from datasets import load_dataset
 from torch.optim import Adam
@@ -171,9 +172,10 @@ def train(args):
     trainer.fit(logger=logger, path=args.save_path, use_wandb=args.use_wandb, project_name=args.project_name)
 
     # save model checkpoint after fitting on only rank0
-    save_path = os.path.join(args.save_path, args.project_name)
-    strategy.save_pretrained(model, path=save_path, only_rank0=True, tokenizer=tokenizer)
-    logger.info(f"Model saved after {args.max_epochs} epoch(s) at {save_path}")
+    if is_rank_0():
+        save_path = os.path.join(args.save_path, args.project_name)
+        strategy.save_pretrained(model, path=save_path, only_rank0=True, tokenizer=tokenizer)
+        logger.info(f"Model saved after {args.max_epochs} epoch(s) at {save_path}")
 
     # save optimizer checkpoint on all ranks
     if args.need_optim_ckpt:
