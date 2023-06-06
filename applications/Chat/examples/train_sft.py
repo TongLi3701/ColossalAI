@@ -172,9 +172,9 @@ def train(args):
     trainer.fit(logger=logger, path=args.save_path, use_wandb=args.use_wandb, project_name=args.project_name)
 
     # save model checkpoint after fitting on only rank0
+    save_path = os.path.join(args.save_path, args.project_name)
+    strategy.save_pretrained(model, path=save_path, only_rank0=True, tokenizer=tokenizer)
     if is_rank_0():
-        save_path = os.path.join(args.save_path, args.project_name)
-        strategy.save_pretrained(model, path=save_path, only_rank0=True, tokenizer=tokenizer)
         logger.info(f"Model saved after {args.max_epochs} epoch(s) at {save_path}")
 
     # save optimizer checkpoint on all ranks

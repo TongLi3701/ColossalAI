@@ -107,20 +107,21 @@ class SFTTrainer(Trainer):
                     step_bar.update()
                     step_counter += 1
 
-                    if is_rank_0(
-                    ) and self.every_step_to_save_model is not None and step_counter != 0 and step_counter != total_steps and step_counter % self.every_step_to_save_model == 0:
+                    if self.every_step_to_save_model is not None and step_counter != 0 and step_counter != total_steps and step_counter % self.every_step_to_save_model == 0:
                         save_path = os.path.join(path, project_name + f"-step{step_counter}")
                         self.strategy.save_pretrained(self.model,
                                                       path=save_path,
                                                       only_rank0=True,
                                                       tokenizer=self.tokenizer)
-                        logger.info(f"Model saved after {step_counter} step(s) at {save_path}")
+                        if is_rank_0():
+                            logger.info(f"Model saved after {step_counter} step(s) at {save_path}")
 
-            if is_rank_0() and self.every_epoch_to_save_model is not None and (
-                    epoch + 1) % self.every_epoch_to_save_model == 0 and (epoch + 1) != self.max_epochs:
+            if self.every_epoch_to_save_model is not None and (epoch + 1) % self.every_epoch_to_save_model == 0 and (
+                    epoch + 1) != self.max_epochs:
                 save_path = os.path.join(path, project_name + f"-epoch{epoch + 1}")
                 self.strategy.save_pretrained(self.model, path=save_path, only_rank0=True, tokenizer=self.tokenizer)
-                logger.info(f"Model saved after {epoch + 1} epoch(s) at {save_path}")
+                if is_rank_0():
+                    logger.info(f"Model saved after {epoch + 1} epoch(s) at {save_path}")
 
             # Evaluation
             if self.eval_dataloader is not None:
